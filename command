@@ -1,25 +1,3 @@
-Run set +e
-  set +e
-  test -f "envs/dev.tfvars" || { echo "ERROR: Missing tfvars file: envs/dev.tfvars"; exit 1; }
-  tofu plan -no-color -var-file="envs/dev.tfvars" -out=tfplan &> tofu_plan_stdout
-  tofu_plan_exit_code="$?"
-  cat tofu_plan_stdout
-  if [[ "$tofu_plan_exit_code" -ne 0 ]]; then
-      grep -i Error tofu_plan_stdout || true
-      echo "OpenTofu plan failed"
-      exit 1
-  fi
-      
-  shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
-  env:
-    TF_IN_AUTOMATION: true
-    TF_INPUT: false
-    AWS_DEFAULT_REGION: us-east-1
-    AWS_REGION: us-east-1
-    AWS_ACCESS_KEY_ID: ***
-    AWS_SECRET_ACCESS_KEY: ***
-    AWS_SESSION_TOKEN: ***
-    TOFU_CLI_PATH: /home/runner/work/_temp/48b7dd48-90c0-43bc-aeff-808131a01f4b
 data.aws_iam_policy_document.s3_role_assume_role_policy: Reading...
 data.aws_iam_policy_document.s3_role_assume_role_policy: Read complete after 0s [id=1565459790]
 
@@ -291,3 +269,34 @@ OpenTofu will perform the following actions:
     }
 
 Plan: 10 to add, 0 to change, 0 to destroy.
+aws_s3_bucket.photos: Creating...
+aws_iam_role.s3_role: Creating...
+aws_iam_role.s3_role: Creation complete after 1s [id=kfb-events-s3-role-dev]
+aws_s3_bucket.photos: Creation complete after 2s [id=kfb-events-photos-dev]
+data.aws_iam_policy_document.photos_bucket: Reading...
+data.aws_iam_policy_document.s3_role_policy: Reading...
+aws_s3_bucket_public_access_block.photos: Creating...
+aws_s3_bucket_ownership_controls.photos: Creating...
+data.aws_iam_policy_document.photos_bucket: Read complete after 0s [id=533687174]
+data.aws_iam_policy_document.s3_role_policy: Read complete after 0s [id=322246209]
+aws_s3_bucket_server_side_encryption_configuration.photos: Creating...
+aws_s3_bucket_versioning.photos: Creating...
+aws_iam_policy.s3_role_policy: Creating...
+aws_iam_policy.s3_role_policy: Creation complete after 0s [id=arn:aws:iam::058264370150:policy/kfb-events-s3-role-policy-dev]
+aws_iam_role_policy_attachment.s3_role_policy: Creating...
+aws_s3_bucket_ownership_controls.photos: Creation complete after 0s [id=kfb-events-photos-dev]
+aws_s3_bucket_server_side_encryption_configuration.photos: Creation complete after 0s [id=kfb-events-photos-dev]
+aws_s3_bucket_public_access_block.photos: Creation complete after 0s [id=kfb-events-photos-dev]
+aws_s3_bucket_policy.photos: Creating...
+aws_iam_role_policy_attachment.s3_role_policy: Creation complete after 0s [id=kfb-events-s3-role-dev/arn:aws:iam::058264370150:policy/kfb-events-s3-role-policy-dev]
+aws_s3_bucket_policy.photos: Creation complete after 0s [id=kfb-events-photos-dev]
+aws_s3_bucket_versioning.photos: Creation complete after 1s [id=kfb-events-photos-dev]
+aws_s3_bucket_lifecycle_configuration.photos: Creating...
+aws_s3_bucket_lifecycle_configuration.photos: Still creating... [10s elapsed]
+aws_s3_bucket_lifecycle_configuration.photos: Still creating... [20s elapsed]
+aws_s3_bucket_lifecycle_configuration.photos: Still creating... [30s elapsed]
+aws_s3_bucket_lifecycle_configuration.photos: Still creating... [40s elapsed]
+aws_s3_bucket_lifecycle_configuration.photos: Still creating... [50s elapsed]
+aws_s3_bucket_lifecycle_configuration.photos: Creation complete after 56s [id=kfb-events-photos-dev]
+
+Apply complete! Resources: 10 added, 0 changed, 0 destroyed.
