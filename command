@@ -1,4 +1,1 @@
-envs/dev.tfvars:
-
-environment            = "dev"
-destination_account_id = "<L2-Development account ID>"
+Select-String -Path .github\workflows\*.yml -Pattern 'uses:|tofu_version'
