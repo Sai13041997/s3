@@ -99,3 +99,37 @@ resource "aws_s3_bucket_cors_configuration" "photos" {
     max_age_seconds = 3000
   }
 }
+
+
+
+variables.tf:
+
+variable "enable_versioning" {
+  description = "Keep old versions of objects (true in prod)"
+  type        = bool
+  default     = false
+}
+
+variable "use_kms" {
+  description = "Use a KMS key instead of SSE-S3 (only if Security requires it)"
+  type        = bool
+  default     = false
+}
+
+variable "kms_key_arn" {
+  description = "KMS key ARN, used only when use_kms = true"
+  type        = string
+  default     = null
+}
+
+variable "noncurrent_version_days" {
+  description = "Days before old (noncurrent) versions are deleted"
+  type        = number
+  default     = 30
+}
+
+variable "cors_allowed_origins" {
+  description = "Web app domains allowed to upload directly (Option B only). Empty = no CORS."
+  type        = list(string)
+  default     = []
+}
