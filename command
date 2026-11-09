@@ -1,4 +1,1 @@
-Service account email: 346618893069-compute@developer.gserviceaccount.com
-Unique numeric ID: 102287996699015997837
-Token audience: kyfb-events-files
- 
+Thanks Adam, got them. Quick question on the service account: it’s the default Compute Engine one. Is anything else in your Google project running as it (other functions, Cloud Run, VMs)? Or is the photo function the only thing using it?
