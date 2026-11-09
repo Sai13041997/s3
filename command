@@ -1,135 +1,74 @@
-resource "aws_s3_bucket" "photos" {
-  bucket = "kfb-events-photos-${var.environment}"
-}
+role.tf:
 
-resource "aws_s3_bucket_public_access_block" "photos" {
-  bucket                  = aws_s3_bucket.photos.id
-  block_public_acls       = true
-  block_public_policy     = true
-  ignore_public_acls      = true
-  restrict_public_buckets = true
-}
-
-resource "aws_s3_bucket_ownership_controls" "photos" {
-  bucket = aws_s3_bucket.photos.id
-  rule {
-    object_ownership = "BucketOwnerEnforced"
-  }
-}
-
-resource "aws_s3_bucket_server_side_encryption_configuration" "photos" {
-  bucket = aws_s3_bucket.photos.id
-  rule {
-    apply_server_side_encryption_by_default {
-      sse_algorithm     = var.use_kms ? "aws:kms" : "AES256"
-      kms_master_key_id = var.use_kms ? var.kms_key_arn : null
-    }
-    bucket_key_enabled = var.use_kms
-  }
-}
-
-resource "aws_s3_bucket_versioning" "photos" {
-  bucket = aws_s3_bucket.photos.id
-  versioning_configuration {
-    status = var.enable_versioning ? "Enabled" : "Disabled"
-  }
-}
-
-resource "aws_s3_bucket_lifecycle_configuration" "photos" {
-  bucket     = aws_s3_bucket.photos.id
-  depends_on = [aws_s3_bucket_versioning.photos]
-
-  rule {
-    id     = "abort-incomplete-uploads"
-    status = "Enabled"
-    filter {}
-    abort_incomplete_multipart_upload {
-      days_after_initiation = 7
-    }
-  }
-
-  dynamic "rule" {
-    for_each = var.enable_versioning ? [1] : []
-    content {
-      id     = "expire-noncurrent-versions"
-      status = "Enabled"
-      filter {}
-      noncurrent_version_expiration {
-        noncurrent_days = var.noncurrent_version_days
-      }
-    }
-  }
-}
-
-data "aws_iam_policy_document" "photos_bucket" {
+data "aws_iam_policy_document" "s3_role_assume_role_policy" {
   statement {
-    sid     = "DenyNonTLS"
-    effect  = "Deny"
-    actions = ["s3:*"]
-    resources = [
-      aws_s3_bucket.photos.arn,
-      "${aws_s3_bucket.photos.arn}/*",
-    ]
+    sid     = "AllowGoogleServiceAccount"
+    effect  = "Allow"
+    actions = ["sts:AssumeRoleWithWebIdentity"]
+
     principals {
-      type        = "*"
-      identifiers = ["*"]
+      type        = "Federated"
+      identifiers = ["accounts.google.com"]
     }
+
     condition {
-      test     = "Bool"
-      variable = "aws:SecureTransport"
-      values   = ["false"]
+      test     = "StringEquals"
+      variable = "accounts.google.com:aud"
+      values   = [var.google_sa_unique_id]
+    }
+
+    condition {
+      test     = "StringEquals"
+      variable = "accounts.google.com:sub"
+      values   = [var.google_sa_unique_id]
+    }
+
+    condition {
+      test     = "StringEquals"
+      variable = "accounts.google.com:oaud"
+      values   = [var.token_audience]
     }
   }
 }
 
-resource "aws_s3_bucket_policy" "photos" {
-  bucket     = aws_s3_bucket.photos.id
-  policy     = data.aws_iam_policy_document.photos_bucket.json
-  depends_on = [aws_s3_bucket_public_access_block.photos]
+resource "aws_iam_role" "s3_role" {
+  name                 = "kfb-events-s3-role-${var.environment}"
+  assume_role_policy   = data.aws_iam_policy_document.s3_role_assume_role_policy.json
+  max_session_duration = 3600
 }
 
-resource "aws_s3_bucket_cors_configuration" "photos" {
-  count  = length(var.cors_allowed_origins) > 0 ? 1 : 0
-  bucket = aws_s3_bucket.photos.id
+locals {
+  object_actions = concat(
+    ["s3:PutObject", "s3:GetObject"],
+    var.allow_delete ? ["s3:DeleteObject"] : []
+  )
+}
 
-  cors_rule {
-    allowed_methods = ["PUT", "GET"]
-    allowed_origins = var.cors_allowed_origins
-    allowed_headers = ["*"]
-    max_age_seconds = 3000
+data "aws_iam_policy_document" "s3_role_policy" {
+  statement {
+    sid       = "PhotoObjectsOnly"
+    effect    = "Allow"
+    actions   = local.object_actions
+    resources = ["${aws_s3_bucket.photos.arn}/${var.object_prefix}*"]
+  }
+
+  dynamic "statement" {
+    for_each = var.use_kms ? [1] : []
+    content {
+      sid       = "UsePhotoKmsKey"
+      effect    = "Allow"
+      actions   = ["kms:GenerateDataKey", "kms:Decrypt"]
+      resources = [var.kms_key_arn]
+    }
   }
 }
 
-
-
-variables.tf:
-
-variable "enable_versioning" {
-  description = "Keep old versions of objects (true in prod)"
-  type        = bool
-  default     = false
+resource "aws_iam_policy" "s3_role_policy" {
+  name   = "kfb-events-s3-role-policy-${var.environment}"
+  policy = data.aws_iam_policy_document.s3_role_policy.json
 }
 
-variable "use_kms" {
-  description = "Use a KMS key instead of SSE-S3 (only if Security requires it)"
-  type        = bool
-  default     = false
-}
-
-variable "kms_key_arn" {
-  description = "KMS key ARN, used only when use_kms = true"
-  type        = string
-  default     = null
-}
-
-variable "noncurrent_version_days" {
-  description = "Days before old (noncurrent) versions are deleted"
-  type        = number
-  default     = 30
-}
-
-variable "cors_allowed_origins" {
-  description = "Web app domains allowed to upload directly (Option B only). Empty = no CORS."
-  type        = list(string)
-  default     = []
+resource "aws_iam_role_policy_attachment" "s3_role_policy" {
+  role       = aws_iam_role.s3_role.name
+  policy_arn = aws_iam_policy.s3_role_policy.arn
 }
