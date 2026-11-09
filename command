@@ -1,4 +1,4 @@
-variable "destination_account_id" {
-  type        = string
-  description = "AWS account ID to deploy into (e.g. L2-Development)."
-}
+envs/dev.tfvars:
+
+environment            = "dev"
+destination_account_id = "<L2-Development account ID>"
