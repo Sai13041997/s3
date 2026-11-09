@@ -1,4 +1,19 @@
-PS C:\Users\T012sp\Git repo\tf-aws-kfb-events-infra> Get-ChildItem -Recurse -File | ForEach-Object { "===== $($_.FullName.Substring((Get-Location).Path.Length + 1)) ====="; Get-Content $_.FullName -Raw }
+PS C:\Users\T012sp\Git repo\real-time-insurance-infra> cd .\.terraform\
+PS C:\Users\T012sp\Git repo\real-time-insurance-infra\.terraform> ls 
+
+
+    Directory: C:\Users\T012sp\Git repo\real-time-insurance-infra\.terraform
+
+
+Mode                 LastWriteTime         Length Name                                                                                                                                                       
+----                 -------------         ------ ----                                                                                                                                                       
+d-----        10/26/2026   9:09 AM                modules                                                                                                                                                    
+d-----          9/2/2026  11:48 AM                providers                                                                                                                                                  
+-a----         9/14/2026   5:02 PM              7 environment                                                                                                                                                
+-a----          9/2/2026  11:48 AM           2496 terraform.tfstate                                                                                                                                          
+
+
+PS C:\Users\T012sp\Git repo\real-time-insurance-infra\.terraform>PS C:\Users\T012sp\Git repo\tf-aws-kfb-events-infra> Get-ChildItem -Recurse -File | ForEach-Object { "===== $($_.FullName.Substring((Get-Location).Path.Length + 1)) ====="; Get-Content $_.FullName -Raw }
 ===== README.md =====
 # tf-aws-kfb-events-infra
 
