@@ -1,1 +1,2 @@
-Thanks. Since other functions share that account, they’d all get access to the photo bucket. Could you create a service account just for the photo function (e.g. photo-s3-access), set the photo function to run as it, and send me its email and unique ID? It only needs permission to create its own ID token, no other project roles. The audience kyfb-events-files stays the same.
+Service account email: s3-files@events-ea237.iam.gserviceaccount.com
+Unique numeric ID: 113890604168937748514
