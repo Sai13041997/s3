@@ -1,7 +1,1 @@
-Hi Adam, the dev S3 setup is ready:
-
-Bucket: kfb-events-photos-dev
-Region: us-east-1
-Role ARN: arn:aws:iam::058264370150:role/kfb-events-s3-role-dev
-Folder: photos/ (the role can only upload/read/delete under this path)
-Token audience: kyfb-events-files
+Dev deployed in L2-Development with S3 bucket kfb-events-photos-dev and IAM role kfb-events-s3-role-dev using Google web-identity access with no keys. Values sent to Adam for testing,
