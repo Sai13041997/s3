@@ -1,2 +1,5 @@
-google_sa_unique_id = "113890604168937748514"
-token_audience      = "kyfb-events-files"
+git add .
+git status
+
+git commit -m "HC-77160: S3 photo bucket and Google web-identity role (dev)"
+git push origin feature/T012SP/HC-77160
