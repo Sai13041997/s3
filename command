@@ -179,3 +179,9 @@ Confirm KFB-managed devices can reach kfb-events-photos-<env>.s3.us-east-1.amazo
 12. Related documents
 Design: Firebase_to_S3_Design.docx (CPE SharePoint: Work in Progress / Proposals + Designs)
 Policy JSON and approvals: Jira HC-77160
+
+
+
+git add README.md
+git commit -m "HC-77160: add README"
+git push origin feature/T012SP/HC-77160
