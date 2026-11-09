@@ -68,6 +68,31 @@ resource "aws_iam_policy" "s3_role_policy" {
   policy = data.aws_iam_policy_document.s3_role_policy.json
 }
 
+variables.tf:
+
+
+variable "google_sa_unique_id" {
+  description = "Unique numeric ID of the Google service account allowed to assume the role"
+  type        = string
+}
+
+variable "token_audience" {
+  description = "Audience the function requests on its Google ID token"
+  type        = string
+}
+
+variable "object_prefix" {
+  description = "Folder in the bucket the role can use"
+  type        = string
+  default     = "photos/"
+}
+
+variable "allow_delete" {
+  description = "Let the role delete photos (false if the app never deletes)"
+  type        = bool
+  default     = true
+}
+
 resource "aws_iam_role_policy_attachment" "s3_role_policy" {
   role       = aws_iam_role.s3_role.name
   policy_arn = aws_iam_policy.s3_role_policy.arn
