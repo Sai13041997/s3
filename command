@@ -1,1 +1,2 @@
-CORS is set on the dev bucket for your 4 origins, allowing GET, HEAD and POST. One ask: in the pre-signed POST policy, please add conditions so uploads must start with photos/, have a size limit (content-length-range), and have Content-Type image/. That stops a URL being reused to upload anything else.
+We are planning to also use it to upload file resources such as PDFs and presentations. We probably won't have much of that, but want the option.
+ 
