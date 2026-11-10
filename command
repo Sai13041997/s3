@@ -1,1 +1,4 @@
-Done. The role now allows photos/ and resources/ in dev. Please make sure your function only issues resources/ upload URLs to staff, since that check lives in the app.
+Would it be possible for me to get access to view the bucket to verify some things?
+ 
+Everything seems to be working on my end. Please provide me with the production details when you can
+ 
