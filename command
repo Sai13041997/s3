@@ -1,15 +1,14 @@
 Run set +e
   set +e
   test -f "envs/prod.tfvars" || { echo "ERROR: Missing tfvars file: envs/prod.tfvars"; exit 1; }
-  tofu plan -no-color -var-file="envs/prod.tfvars" -out=tfplan &> tofu_plan_stdout
-  tofu_plan_exit_code="$?"
-  cat tofu_plan_stdout
-  if [[ "$tofu_plan_exit_code" -ne 0 ]]; then
-      grep -i Error tofu_plan_stdout || true
-      echo "OpenTofu plan failed"
+  tofu apply -auto-approve -var-file="envs/prod.tfvars" &> tofu_apply_stdout
+  tofu_apply_exit_code="$?"
+  cat tofu_apply_stdout
+  if [[ "$tofu_apply_exit_code" -ne 0 ]]; then
+      grep -i Error tofu_apply_stdout || true
+      echo "OpenTofu apply failed"
       exit 1
   fi
-      
   shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
   env:
     TF_IN_AUTOMATION: true
@@ -19,7 +18,7 @@ Run set +e
     AWS_ACCESS_KEY_ID: ***
     AWS_SECRET_ACCESS_KEY: ***
     AWS_SESSION_TOKEN: ***
-    TOFU_CLI_PATH: /home/runner/work/_temp/7b1bd1ab-5713-4490-9806-5868b1bee481
+    TOFU_CLI_PATH: /home/runner/work/_temp/a77e8922-3637-4952-921f-a8a29ca62489
 data.aws_iam_policy_document.s3_role_assume_role_policy: Reading...
 data.aws_iam_policy_document.s3_role_assume_role_policy: Read complete after 0s [id=772762388]
 
@@ -324,3 +323,35 @@ OpenTofu will perform the following actions:
     }
 
 Plan: 10 to add, 0 to change, 0 to destroy.
+aws_iam_role.s3_role: Creating...
+aws_s3_bucket.photos: Creating...
+aws_iam_role.s3_role: Creation complete after 0s [id=kfb-events-s3-role-prod]
+aws_s3_bucket.photos: Creation complete after 1s [id=kfb-events-photos-prod]
+data.aws_iam_policy_document.photos_bucket: Reading...
+aws_s3_bucket_public_access_block.photos: Creating...
+data.aws_iam_policy_document.s3_role_policy: Reading...
+aws_s3_bucket_cors_configuration.photos[0]: Creating...
+data.aws_iam_policy_document.photos_bucket: Read complete after 0s [id=562422795]
+aws_s3_bucket_server_side_encryption_configuration.photos: Creating...
+aws_s3_bucket_ownership_controls.photos: Creating...
+data.aws_iam_policy_document.s3_role_policy: Read complete after 0s [id=2508082476]
+aws_iam_policy.s3_role_policy: Creating...
+aws_s3_bucket_lifecycle_configuration.photos: Creating...
+aws_s3_bucket_public_access_block.photos: Creation complete after 0s [id=kfb-events-photos-prod]
+aws_s3_bucket_policy.photos: Creating...
+aws_iam_policy.s3_role_policy: Creation complete after 0s [id=arn:aws:iam::339712702314:policy/kfb-events-s3-role-policy-prod]
+aws_iam_role_policy_attachment.s3_role_policy: Creating...
+aws_s3_bucket_ownership_controls.photos: Creation complete after 0s [id=kfb-events-photos-prod]
+aws_s3_bucket_server_side_encryption_configuration.photos: Creation complete after 0s [id=kfb-events-photos-prod]
+aws_iam_role_policy_attachment.s3_role_policy: Creation complete after 0s [id=kfb-events-s3-role-prod/arn:aws:iam::339712702314:policy/kfb-events-s3-role-policy-prod]
+aws_s3_bucket_policy.photos: Creation complete after 1s [id=kfb-events-photos-prod]
+aws_s3_bucket_cors_configuration.photos[0]: Creation complete after 1s [id=kfb-events-photos-prod]
+aws_s3_bucket_lifecycle_configuration.photos: Still creating... [10s elapsed]
+aws_s3_bucket_lifecycle_configuration.photos: Still creating... [20s elapsed]
+aws_s3_bucket_lifecycle_configuration.photos: Still creating... [30s elapsed]
+aws_s3_bucket_lifecycle_configuration.photos: Still creating... [40s elapsed]
+aws_s3_bucket_lifecycle_configuration.photos: Still creating... [50s elapsed]
+aws_s3_bucket_lifecycle_configuration.photos: Creation complete after 57s [id=kfb-events-photos-prod]
+
+Apply complete! Resources: 10 added, 0 changed, 0 destroyed.
+s
