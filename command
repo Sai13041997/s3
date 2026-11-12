@@ -1,1 +1,1 @@
-No worries, and thanks for the review. You’re right on the versioning and the shared service account. I should have caught those before opening the PR. I’ll get both fixed and ping you once it’s updated.
+Nah man no worries, that's the whole point of a review  also sorry don't mean to be overly critical
