@@ -1,94 +1,326 @@
-# tf-aws-kfb-events-infra
+Run set +e
+  set +e
+  test -f "envs/prod.tfvars" || { echo "ERROR: Missing tfvars file: envs/prod.tfvars"; exit 1; }
+  tofu plan -no-color -var-file="envs/prod.tfvars" -out=tfplan &> tofu_plan_stdout
+  tofu_plan_exit_code="$?"
+  cat tofu_plan_stdout
+  if [[ "$tofu_plan_exit_code" -ne 0 ]]; then
+      grep -i Error tofu_plan_stdout || true
+      echo "OpenTofu plan failed"
+      exit 1
+  fi
+      
+  shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+  env:
+    TF_IN_AUTOMATION: true
+    TF_INPUT: false
+    AWS_DEFAULT_REGION: us-east-1
+    AWS_REGION: us-east-1
+    AWS_ACCESS_KEY_ID: ***
+    AWS_SECRET_ACCESS_KEY: ***
+    AWS_SESSION_TOKEN: ***
+    TOFU_CLI_PATH: /home/runner/work/_temp/7b1bd1ab-5713-4490-9806-5868b1bee481
+data.aws_iam_policy_document.s3_role_assume_role_policy: Reading...
+data.aws_iam_policy_document.s3_role_assume_role_policy: Read complete after 0s [id=772762388]
 
-OpenTofu code for the AWS side of the **KFB Events app**: one private S3 bucket and one IAM role per environment, deployed into the L2 accounts.
+OpenTofu used the selected providers to generate the following execution
+plan. Resource actions are indicated with the following symbols:
+  + create
+ <= read (data resources)
 
+OpenTofu will perform the following actions:
 
-The Events app (built and owned by Adam Rayborn, outside core KFB systems) lets people upload event photos from mobile and web. KFB staff review each photo and approve or delete it before it is shown. Staff can also upload resource files such as PDFs and presentations.
+  # data.aws_iam_policy_document.photos_bucket will be read during apply
+  # (config refers to values not yet known)
+ <= data "aws_iam_policy_document" "photos_bucket" {
+      + id            = (known after apply)
+      + json          = (known after apply)
+      + minified_json = (known after apply)
 
-The app runs on Google Firebase (Auth, Firestore, Storage, Hosting, Functions). KFB-managed devices cannot load files from Firebase Storage, while every other part of Firebase works. To fix this with the smallest change, **only Firebase Storage is replaced by a private S3 bucket**. Everything else stays in Firebase.
+      + statement {
+          + actions   = [
+              + "s3:*",
+            ]
+          + effect    = "Deny"
+          + resources = [
+              + (known after apply),
+              + (known after apply),
+            ]
+          + sid       = "DenyNonTLS"
 
-- **S3** stores the files only: photos in `photos/`, staff resource files in `resources/`.
-- **Firestore** stores the S3 object key, file ID and status (Pending / Approved / Rejected). Approving a photo changes only Firestore.
+          + condition {
+              + test     = "Bool"
+              + values   = [
+                  + "false",
+                ]
+              + variable = "aws:SecureTransport"
+            }
 
-The design was reviewed with the app owner, Cloud Ops and Security. Security approved the access model (Oct 12, 2026). The decision to use the L2 accounts was made Oct 22, 2026.
+          + principals {
+              + identifiers = [
+                  + "*",
+                ]
+              + type        = "*"
+            }
+        }
+    }
 
----
+  # data.aws_iam_policy_document.s3_role_policy will be read during apply
+  # (config refers to values not yet known)
+ <= data "aws_iam_policy_document" "s3_role_policy" {
+      + id            = (known after apply)
+      + json          = (known after apply)
+      + minified_json = (known after apply)
 
-## How it works
+      + statement {
+          + actions   = [
+              + "s3:DeleteObject",
+              + "s3:GetObject",
+              + "s3:PutObject",
+            ]
+          + effect    = "Allow"
+          + resources = [
+              + (known after apply),
+              + (known after apply),
+            ]
+          + sid       = "AppFoldersOnly"
+        }
+      + statement {
+          + actions   = [
+              + "s3:ListBucket",
+            ]
+          + effect    = "Allow"
+          + resources = [
+              + (known after apply),
+            ]
+          + sid       = "ListAppFoldersOnly"
 
-### Access from Firebase to AWS (no AWS keys)
+          + condition {
+              + test     = "StringLike"
+              + values   = [
+                  + "photos/*",
+                  + "resources/*",
+                ]
+              + variable = "s3:prefix"
+            }
+        }
+    }
 
-There are **no AWS access keys anywhere**. The app's Cloud Function proves who it is with a Google-signed token, and AWS swaps that for short-lived credentials.
+  # aws_iam_policy.s3_role_policy will be created
+  + resource "aws_iam_policy" "s3_role_policy" {
+      + arn              = (known after apply)
+      + attachment_count = (known after apply)
+      + id               = (known after apply)
+      + name             = "kfb-events-s3-role-policy-prod"
+      + name_prefix      = (known after apply)
+      + path             = "/"
+      + policy           = (known after apply)
+      + policy_id        = (known after apply)
+      + tags_all         = {
+          + "application_name"      = "kfbevents"
+          + "business_ops_category" = "FED"
+          + "created_by"            = "PlatformEngineering@kyfb.com"
+          + "owned_by"              = "CloudOps@kyfb.com"
+          + "requested_by"          = "FED"
+          + "source"                = "github.com/kfbmic/tf-aws-kfb-events-infra"
+          + "terraform"             = "true"
+        }
+    }
 
-1. The function runs as a dedicated Google service account, one per environment:
-   - dev: `s3-files@events-ea237.iam.gserviceaccount.com`
-   - prod: `s3-files-prod@events-ea237.iam.gserviceaccount.com`
-2. It asks Google for an ID token with the agreed audience (`kyfb-events-files`).
-3. It calls AWS STS `AssumeRoleWithWebIdentity` with that token and the role ARN.
-4. STS checks the token and the role's trust policy, then returns temporary credentials (max 1 hour).
-5. The AWS SDK in the function uses those credentials and refreshes them as needed.
+  # aws_iam_role.s3_role will be created
+  + resource "aws_iam_role" "s3_role" {
+      + arn                   = (known after apply)
+      + assume_role_policy    = jsonencode(
+            {
+              + Statement = [
+                  + {
+                      + Action    = "sts:AssumeRoleWithWebIdentity"
+                      + Condition = {
+                          + StringEquals = {
+                              + "accounts.google.com:aud"  = "108286913966925400487"
+                              + "accounts.google.com:oaud" = "kyfb-events-files"
+                              + "accounts.google.com:sub"  = "108286913966925400487"
+                            }
+                        }
+                      + Effect    = "Allow"
+                      + Principal = {
+                          + Federated = "accounts.google.com"
+                        }
+                      + Sid       = "AllowGoogleServiceAccount"
+                    },
+                ]
+              + Version   = "2012-10-17"
+            }
+        )
+      + create_date           = (known after apply)
+      + force_detach_policies = false
+      + id                    = (known after apply)
+      + managed_policy_arns   = (known after apply)
+      + max_session_duration  = 3600
+      + name                  = "kfb-events-s3-role-prod"
+      + name_prefix           = (known after apply)
+      + path                  = "/"
+      + tags_all              = {
+          + "application_name"      = "kfbevents"
+          + "business_ops_category" = "FED"
+          + "created_by"            = "PlatformEngineering@kyfb.com"
+          + "owned_by"              = "CloudOps@kyfb.com"
+          + "requested_by"          = "FED"
+          + "source"                = "github.com/kfbmic/tf-aws-kfb-events-infra"
+          + "terraform"             = "true"
+        }
+      + unique_id             = (known after apply)
 
-The role's trust policy only accepts tokens where:
-- the issuer is Google (`accounts.google.com`),
-- `aud` and `sub` equal that environment's service account unique numeric ID, and
-- `oaud` equals the agreed audience.
+      + inline_policy (known after apply)
+    }
 
-No IAM OIDC provider resource is needed; AWS trusts Google natively.
+  # aws_iam_role_policy_attachment.s3_role_policy will be created
+  + resource "aws_iam_role_policy_attachment" "s3_role_policy" {
+      + id         = (known after apply)
+      + policy_arn = (known after apply)
+      + role       = "kfb-events-s3-role-prod"
+    }
 
-> Dedicated service accounts are used on purpose. The default Compute Engine account in the Google project is shared with other functions, and dev and prod use separate accounts so dev or test code can never reach prod files.
+  # aws_s3_bucket.photos will be created
+  + resource "aws_s3_bucket" "photos" {
+      + acceleration_status         = (known after apply)
+      + acl                         = (known after apply)
+      + arn                         = (known after apply)
+      + bucket                      = "kfb-events-photos-prod"
+      + bucket_domain_name          = (known after apply)
+      + bucket_namespace            = (known after apply)
+      + bucket_prefix               = (known after apply)
+      + bucket_region               = (known after apply)
+      + bucket_regional_domain_name = (known after apply)
+      + force_destroy               = false
+      + hosted_zone_id              = (known after apply)
+      + id                          = (known after apply)
+      + object_lock_enabled         = (known after apply)
+      + policy                      = (known after apply)
+      + region                      = "us-east-1"
+      + request_payer               = (known after apply)
+      + tags_all                    = {
+          + "application_name"      = "kfbevents"
+          + "business_ops_category" = "FED"
+          + "created_by"            = "PlatformEngineering@kyfb.com"
+          + "owned_by"              = "CloudOps@kyfb.com"
+          + "requested_by"          = "FED"
+          + "source"                = "github.com/kfbmic/tf-aws-kfb-events-infra"
+          + "terraform"             = "true"
+        }
+      + website_domain              = (known after apply)
+      + website_endpoint            = (known after apply)
 
-### Upload
+      + cors_rule (known after apply)
 
-The function checks the user, then creates a pre-signed POST. The browser uploads the file straight to S3 as a multipart form. Photos go to `photos/`; staff resource files go to `resources/`, and the app only issues `resources/` uploads to staff. Firestore gets the key and status `Pending`.
+      + grant (known after apply)
 
-### Viewing
+      + lifecycle_rule (known after apply)
 
-Function checks the viewer is allowed -> reads the S3 key from Firestore -> creates a pre-signed GET URL (short expiry, 5-15 minutes recommended) -> the browser loads the file straight from S3 with `<img>` or `fetch`.
+      + logging (known after apply)
 
-Anyone holding a pre-signed URL can use it until it expires, so expiries are kept short.
+      + object_lock_configuration (known after apply)
 
----
+      + replication_configuration (known after apply)
 
-## What this repo creates (per environment)
+      + server_side_encryption_configuration (known after apply)
 
-| Resource | Purpose |
-|---|---|
-| S3 bucket `kfb-events-photos-<env>` | Stores the app's files |
-| Public access block | All four settings on; bucket can never be public |
-| Ownership controls | `BucketOwnerEnforced` - ACLs disabled |
-| Encryption | SSE-S3 (AES256) by default; KMS if `use_kms = true` |
-| Lifecycle | Abort incomplete uploads after 7 days |
-| Bucket policy | Denies any request not using HTTPS |
-| CORS | GET, HEAD and POST from the app's web origins only; Content-Type header only |
-| IAM role `kfb-events-s3-role-<env>` | Assumed by that environment's Google service account; 1-hour max session |
-| IAM policy `kfb-events-s3-role-policy-<env>` | Get, put and delete on `photos/*` and `resources/*`; list only those folders |
+      + versioning (known after apply)
 
-The role can list only keys in its folders. It cannot change bucket settings or ACLs, or touch any other bucket or service.
+      + website (known after apply)
+    }
 
-**Versioning is off.** The data isn't business-critical and the app manages its own files, so deleted or overwritten files are not kept. The app owner can request versioning with a justification.
+  # aws_s3_bucket_cors_configuration.photos[0] will be created
+  + resource "aws_s3_bucket_cors_configuration" "photos" {
+      + bucket = (known after apply)
+      + id     = (known after apply)
+      + region = "us-east-1"
 
-**Lifecycle note:** there is deliberately **no rule that expires files**. Retention is a business decision for the app owner and will be added only once confirmed.
+      + cors_rule {
+          + allowed_headers = [
+              + "Content-Type",
+            ]
+          + allowed_methods = [
+              + "GET",
+              + "HEAD",
+              + "POST",
+            ]
+          + allowed_origins = [
+              + "https://events-ea237.firebaseapp.com",
+              + "https://events-ea237.web.app",
+              + "https://kfbeventstaff.com",
+            ]
+          + expose_headers  = []
+          + max_age_seconds = 3000
+        }
+    }
 
----
+  # aws_s3_bucket_lifecycle_configuration.photos will be created
+  + resource "aws_s3_bucket_lifecycle_configuration" "photos" {
+      + bucket                                 = (known after apply)
+      + expected_bucket_owner                  = (known after apply)
+      + id                                     = (known after apply)
+      + region                                 = "us-east-1"
+      + transition_default_minimum_object_size = "all_storage_classes_128K"
 
-## Repository layout
+      + rule {
+          + id     = "abort-incomplete-uploads"
+          + status = "Enabled"
 
-```
-.github/workflows/
-  tofu-plan.yml      Runs plan on every push (dev workspace) or on demand
-  tofu-apply.yml     Runs apply on demand for a chosen workspace
-envs/
-  dev.tfvars         Values for the dev workspace
-  prod.tfvars        Values for the prod workspace
-versions.tf          OpenTofu version, AWS provider pin, state backend, provider + tags
-variables.tf         All input variables
-s3.tf                Bucket and its settings
-role.tf              IAM role, trust policy and permissions
-README.md            This file
-```
+          + abort_incomplete_multipart_upload {
+              + days_after_initiation = 7
+            }
 
----
+          + filter {
+            }
+        }
+    }
 
-## Related documents
+  # aws_s3_bucket_ownership_controls.photos will be created
+  + resource "aws_s3_bucket_ownership_controls" "photos" {
+      + bucket = (known after apply)
+      + id     = (known after apply)
+      + region = "us-east-1"
 
-- Design: `Firebase_to_S3_Design.docx` (CPE SharePoint: Work in Progress / Proposals + Designs)
+      + rule {
+          + object_ownership = "BucketOwnerEnforced"
+        }
+    }
+
+  # aws_s3_bucket_policy.photos will be created
+  + resource "aws_s3_bucket_policy" "photos" {
+      + bucket = (known after apply)
+      + id     = (known after apply)
+      + policy = (known after apply)
+      + region = "us-east-1"
+    }
+
+  # aws_s3_bucket_public_access_block.photos will be created
+  + resource "aws_s3_bucket_public_access_block" "photos" {
+      + block_public_acls       = true
+      + block_public_policy     = true
+      + bucket                  = (known after apply)
+      + id                      = (known after apply)
+      + ignore_public_acls      = true
+      + region                  = "us-east-1"
+      + restrict_public_buckets = true
+    }
+
+  # aws_s3_bucket_server_side_encryption_configuration.photos will be created
+  + resource "aws_s3_bucket_server_side_encryption_configuration" "photos" {
+      + bucket = (known after apply)
+      + id     = (known after apply)
+      + region = "us-east-1"
+
+      + rule {
+          + blocked_encryption_types = (known after apply)
+          + bucket_key_enabled       = false
+
+          + apply_server_side_encryption_by_default {
+              + kms_master_key_id = (known after apply)
+              + sse_algorithm     = "AES256"
+            }
+        }
+    }
+
+Plan: 10 to add, 0 to change, 0 to destroy.
