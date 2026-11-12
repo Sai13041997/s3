@@ -1,8 +1,8 @@
-This looks ok in general, but I'm noticing the google uid is the same between dev and prod, what exactly does that value associate to? 
- 
-Also, idrk if we need cors rules considering the permissions around this bucket honestly but I guess it's not hurting anything, I don't think we'd ever want versioning on this thing, I think some of the code is slightly overly complex but it's still relatively readable and will do it's job I think so I guess taht's not a big deal
- 
-I noticed you enabled versioning on prod, don't think we want that
- 
-I would honestly recommend removing the sqitch for it, dont' think we ever want it
- 
+Thanks Alex.
+
+Google UID: it’s the unique numeric ID of the Google service account the Firebase function runs as. The role only accepts Google tokens issued to that account. Agreed dev and prod shouldn’t share it. I’m asking Adam for a dedicated prod service account.
+Versioning: I’m checking with Adam first, since it decides whether deleted files can be recovered. If he’s fine without it, I’ll remove it and the switch.
+CORS: needed because the browser talks to S3 directly. Uploads use a pre-signed POST form, and reads use img and fetch. Without CORS the browser blocks those calls even with a valid signed URL. It’s locked to the app’s origins, GET/HEAD/POST and the Content-Type header only.
+Complexity: happy to trim further, such as the KMS switch, in a follow-up.
+
+I’ll update the PR once Adam confirms and ping you for another review.
