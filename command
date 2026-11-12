@@ -1,1 +1,1 @@
-Nah man no worries, that's the whole point of a review  also sorry don't mean to be overly critical
+Not at all, it was helpful. Appreciate you taking the time.
